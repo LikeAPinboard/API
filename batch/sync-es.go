@@ -13,14 +13,17 @@ import (
 	"golang.org/x/net/context"
 )
 
-func SyncRow(c *config.Config, resp *spec.PinResponse) {
-	sLogger.Infof("Sync: %s", resp.String())
-
-	client, err := es.NewClient(
+func createClient(c *config.Config) (*es.Client, error) {
+	return es.NewClient(
 		es.SetURL(c.ES.Url),
 		es.SetSniff(false),
 	)
+}
 
+func SyncRow(c *config.Config, resp *spec.PinResponse) {
+	sLogger.Infof("Sync: %s", resp.String())
+
+	client, err := createClient(c)
 	if err != nil {
 		sLogger.Error(err)
 		return
@@ -38,4 +41,28 @@ func SyncRow(c *config.Config, resp *spec.PinResponse) {
 	}
 
 	sLogger.Info("Sync success")
+}
+
+func DeleteRow(c *config.Config, id int) {
+	sLogger.Infof("Delete row Id: %d", id)
+
+	client, err := createClient(c)
+	if err != nil {
+		sLogger.Error(err)
+		return
+	}
+
+	res, err := client.Delete().
+		Index(c.ES.Index).
+		Type("pins").
+		Id(fmt.Sprint(id)).
+		Do(context.Background())
+	if err != nil {
+		sLogger.Error(err)
+		return
+	}
+
+	if res.Found {
+		sLogger.Info("Delete succeed")
+	}
 }
